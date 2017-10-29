@@ -1,4 +1,9 @@
 {
+  "name": "kevinlinp-orders-job",
+  "version": "0.0.1",
+  "engines": {
+    "node": "8.x"
+  },
   "dependencies": {
     "jsonfile": "^4.0.0",
     "mongodb": "^2.2.33",
