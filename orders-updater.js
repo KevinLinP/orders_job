@@ -5,8 +5,8 @@ const MongoClient = require('mongodb').MongoClient;
 class OrdersUpdater {
   constructor(ordersArray) {
     this.orders = this.keyToExternalId(ordersArray);
-    this.credentials = jsonfile.readFileSync('./credentials/mongo.json');
-    this.now = Date.now().toString();
+    this.mongoUri = process.env.MONGO_URI;
+    this.now = new Date();
   }
 
   async updateAll() {
@@ -28,28 +28,48 @@ class OrdersUpdater {
       const dbOrder = dbOrders[externalId];
 
       if (dbOrder) {
-        console.log(dbOrder);
-        //const documentUpdate = this.documentToUpdate(order, dbOrder);
-        //if (documentUpdate) {
-          //batch.find({externalId: externalId}).update(documentUpdate);
-        //}
+        const updates = this.updateDbOrder(order, dbOrder);
+        batch.find({externalId: externalId}).update(updates);
       } else {
         batch.insert(this.newDbOrder(order));
       }
     });
   }
 
-  newDbOrder(order) 
-    const history = {};
-    history[this.now] = {
+  newDbOrder(order) {
+    const event = {
+      timestamp: this.now,
       price: order.price,
       quantity: order.quantity
     };
 
     return {
       externalId: order.externalId,
-      history: history
+      lastActiveAt: this.now,
+      history: [event]
     };
+  }
+
+  updateDbOrder(order, dbOrder) {
+    const update = {
+      $set: {
+        lastActiveAt: this.now
+      }
+    };
+
+    let history = dbOrder.history;
+    history = _.sortBy(history, 'timestamp');
+    const latest = _.last(history);
+
+    if ((order.quantity != latest.quantity) || (order.price != latest.price)) {
+      update['$push'] = {history: {
+        timestamp: this.now,
+        price: order.price,
+        quantity: order.quantity
+      }};
+    }
+
+    return update;
   }
 
   async fetchDbOrders(collection) {
@@ -67,7 +87,7 @@ class OrdersUpdater {
 
   async connectToMongo() {
     try {
-      return await MongoClient.connect(this.credentials.uri);
+      return await MongoClient.connect(this.mongoUri);
     } catch (e) {
       console.log(e);
       process.exit(1);

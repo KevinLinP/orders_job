@@ -4,11 +4,12 @@ const _ = require('underscore');
 
 class Stubhub {
   constructor() {
-    this.credentials = jsonfile.readFileSync('./credentials/stubhub.json');
+    this.accessToken = process.env.STUBHUB_ACCESS_TOKEN;
   }
 
   printAccessTokens() {
-    const basicAuthToken = new Buffer(`${this.credentials.consumerKey}:${this.credentials.consumerSecret}`).toString('base64');
+    const credentials = jsonfile.readFileSync('./credentials/stubhub.json');
+    const basicAuthToken = new Buffer(`${credentials.consumerKey}:${credentials.consumerSecret}`).toString('base64');
     const headers = {
       'Content-Type': 'application/x-www-form-urlencoded',
       'Authorization': `Basic ${basicAuthToken}`
@@ -16,7 +17,7 @@ class Stubhub {
 
     unirest.post('https://api.stubhub.com/login')
       .headers(headers)
-      .send(`grant_type=password&username=${this.credentials.login}&password=${this.credentials.password}&scope=PRODUCTION`)
+      .send(`grant_type=password&username=${credentials.login}&password=${credentials.password}&scope=PRODUCTION`)
       .end(function (response) {
         console.log(response.code);
         console.log(response.body);
@@ -26,7 +27,7 @@ class Stubhub {
   call(path, callback) {
     const url = `https://api.stubhub.com${path}`;
     const headers = {
-      'Authorization': `Bearer ${this.credentials.accessToken}`,
+      'Authorization': `Bearer ${this.accessToken}`,
       'Accept': 'application/json',
       'Accept-Encoding': 'application/json'
     };
@@ -44,11 +45,11 @@ class Stubhub {
         console.log(response);
       } else {
         const data = response.body;
-        //if (data.totalListings > (start + rows)) {
-          //setTimeout(() => {
-            //this.getListings(path, (start + rows), callback);
-          //}, 500);
-        //}
+        if (data.totalListings > (start + rows)) {
+          setTimeout(() => {
+            this.getListings(path, (start + rows), callback);
+          }, 500);
+        }
 
         const listings = this.simplifyListings(data.listing);
         callback(listings);
