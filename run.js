@@ -1,11 +1,15 @@
-const schedule = require('node-schedule');
 const Stubhub = require('./stubhub.js');
 const OrdersUpdater = require('./orders-updater.js');
+const Raven = require('raven');
 
-const url = `/search/inventory/v2?eventid=${103006757}&sectionidlist=${592805}`;
-const stubhub = new Stubhub();
+Raven.config(process.env.SENTRY_DSN).install();
 
-stubhub.getListings(url, 0, (orders) => {
-  const ordersUpdater = new OrdersUpdater(orders);
-  ordersUpdater.updateAll();
+Raven.context(() => {
+  const url = `/search/inventory/v2?eventid=${103006757}&sectionidlist=${592805}`;
+  const stubhub = new Stubhub();
+
+  stubhub.getListings(url, 0, (orders) => {
+    const ordersUpdater = new OrdersUpdater(orders);
+    ordersUpdater.updateAll();
+  });
 });

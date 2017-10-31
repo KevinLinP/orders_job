@@ -8,6 +8,7 @@
     "jsonfile": "^4.0.0",
     "mongodb": "^2.2.33",
     "node-schedule": "^1.2.5",
+    "raven": "^2.2.1",
     "underscore": "^1.8.3",
     "unirest": "^0.5.1"
   }
